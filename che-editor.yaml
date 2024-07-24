@@ -1,68 +1,32 @@
- - schemaVersion: 2.2.2
-    metadata:
-      name: che-incubator/che-idea-server/next
-      displayName: IntelliJ IDEA Ultimate (desktop)
-      description: JetBrains IntelliJ IDEA Ultimate dev server for Eclipse Che - next
-      icon: /images/intellij-idea.svg
-      tags:
-        - Tech-Preview
-      attributes:
-        publisher: che-incubator
-        version: next
-        title: JetBrains IntelliJ IDEA Ultimate dev server for Eclipse Che - next
-        repository: 'https://github.com/che-incubator/che-idea-dev-server'
-        firstPublicationDate: '2023-30-11'
-    commands:
-      - id: inject-editor
-        apply:
-          component: editor-injector
-      - id: start-idea-server
-        exec:
-          component: editor-runtime
-          commandLine: nohup /idea-server/entrypoint-volume.sh > /idea-server/std.out
-            2>&1 &
-    events:
-      preStart:
-        - inject-editor
-      postStart:
-        - start-idea-server
-    components:
-      - name: idea-server
-        volume: {}
-      - name: editor-injector
-        container:
-          image: 'quay.io/che-incubator/che-idea-dev-server:next'
-          command:
-            - /entrypoint-init-container.sh
-          volumeMounts:
-            - name: idea-server
-              path: /idea-server
-          memoryLimit: 256Mi
-          memoryRequest: 32Mi
-          cpuLimit: 500m
-          cpuRequest: 30m
-      - name: editor-runtime
-        container:
-          image: 'quay.io/devfile/universal-developer-image:latest'
-          memoryLimit: 6144Mi
-          memoryRequest: 2048Mi
-          cpuLimit: 2000m
-          cpuRequest: 1500m
-          volumeMounts:
-            - name: idea-server
-              path: /idea-server
-          endpoints:
-            - name: idea-server
-              attributes:
-                type: main
-                cookiesAuthEnabled: true
-                discoverable: false
-                urlRewriteSupported: true
-              targetPort: 3400
-              exposure: public
-              secure: true
-              protocol: https
-        attributes:
-          app.kubernetes.io/component: editor-runtime
-          app.kubernetes.io/part-of: idea-server.eclipse.org
-          controller.devfile.io/container-contribution: true
+inline:
+  schemaVersion: 2.1.0
+  metadata:
+    name: JetBrains IntelliJ IDEA Community IDE
+  components:
+    - name: intellij
+      container:
+        image: 'quay.io/che-incubator/che-idea:next'
+        volumeMounts:
+          - name: projector-user
+            path: /home/projector-user
+        mountSources: true
+        memoryLimit: 2048M
+        memoryRequest: 32Mi
+        cpuLimit: 1500m
+        cpuRequest: 100m
+        endpoints:
+          - name: intellij
+            attributes:
+              type: main
+              cookiesAuthEnabled: true
+              urlRewriteSupported: true
+              discoverable: false
+              path: /?backgroundColor=434343&wss
+            targetPort: 8887
+            exposure: public
+            secure: false
+            protocol: https
+      attributes: {}
+    - name: projector-user
+      volume: {}
+         
