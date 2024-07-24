@@ -1,33 +1,68 @@
-  - schemaVersion: 2.2.2
+ - schemaVersion: 2.2.2
     metadata:
-      name: ws-skeleton/jupyter/5.7.0
-      displayName: Jupyter Notebook
-      description: Jupyter Notebook for Eclipse Che
-      icon: /images/notebook.svg
+      name: che-incubator/che-idea-server/next
+      displayName: IntelliJ IDEA Ultimate (desktop)
+      description: JetBrains IntelliJ IDEA Ultimate dev server for Eclipse Che - next
+      icon: /images/intellij-idea.svg
       tags:
         - Tech-Preview
       attributes:
-        publisher: ws-skeleton
-        version: 5.7.0
-        title: Jupyter Notebook for Eclipse Che
-        repository: 'https://github.com/ws-skeleton/che-editor-jupyter/'
-        firstPublicationDate: '2019-02-05'
+        publisher: che-incubator
+        version: next
+        title: JetBrains IntelliJ IDEA Ultimate dev server for Eclipse Che - next
+        repository: 'https://github.com/che-incubator/che-idea-dev-server'
+        firstPublicationDate: '2023-30-11'
+    commands:
+      - id: inject-editor
+        apply:
+          component: editor-injector
+      - id: start-idea-server
+        exec:
+          component: editor-runtime
+          commandLine: nohup /idea-server/entrypoint-volume.sh > /idea-server/std.out
+            2>&1 &
+    events:
+      preStart:
+        - inject-editor
+      postStart:
+        - start-idea-server
     components:
-      - name: jupyter-notebook
+      - name: idea-server
+        volume: {}
+      - name: editor-injector
         container:
-          image: "docker.io/ksmster/che-editor-jupyter:5.7.0"
-          env:
-            - name: JUPYTER_NOTEBOOK_DIR
-              value: /projects
-          mountSources: true
-          memoryLimit: 512M
+          image: 'quay.io/che-incubator/che-idea-dev-server:next'
+          command:
+            - /entrypoint-init-container.sh
+          volumeMounts:
+            - name: idea-server
+              path: /idea-server
+          memoryLimit: 256Mi
+          memoryRequest: 32Mi
+          cpuLimit: 500m
+          cpuRequest: 30m
+      - name: editor-runtime
+        container:
+          image: 'quay.io/devfile/universal-developer-image:latest'
+          memoryLimit: 6144Mi
+          memoryRequest: 2048Mi
+          cpuLimit: 2000m
+          cpuRequest: 1500m
+          volumeMounts:
+            - name: idea-server
+              path: /idea-server
           endpoints:
-            - name: jupyter
-              targetPort: 8888
-              exposure: public
-              protocol: https
+            - name: idea-server
               attributes:
                 type: main
+                cookiesAuthEnabled: true
+                discoverable: false
+                urlRewriteSupported: true
+              targetPort: 3400
+              exposure: public
+              secure: true
+              protocol: https
         attributes:
-          ports:
-            - exposedPort: 8888
+          app.kubernetes.io/component: editor-runtime
+          app.kubernetes.io/part-of: idea-server.eclipse.org
+          controller.devfile.io/container-contribution: true
